@@ -3,7 +3,9 @@ package com.vadimaid.skb_registration.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vadimaid.skb_registration.dto.CustomerDto;
 import com.vadimaid.skb_registration.entity.Customer;
+import com.vadimaid.skb_registration.exception.ApiException;
 import com.vadimaid.skb_registration.service.CustomerService;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.runner.RunWith;
@@ -61,6 +63,19 @@ public class CustomerControllerTest {
         mockMvc.perform(requestBuilder).andExpect(status().isCreated());
 
         verify(customerService, times(1)).create(eq(dto));
+
+        CustomerDto dtoFail = new CustomerDto();
+        dto.setLogin("test");
+        dto.setPassword(" ");
+        dto.setEmail(" ");
+        dto.setFullName("Test Test");
+
+        requestBuilder = MockMvcRequestBuilders
+                .post("/api/customer/create")
+                .content(mapper.writeValueAsString(dtoFail))
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .contentType(MediaType.APPLICATION_JSON_VALUE);
+        mockMvc.perform(requestBuilder).andExpect(status().isBadRequest());
     }
 
 }

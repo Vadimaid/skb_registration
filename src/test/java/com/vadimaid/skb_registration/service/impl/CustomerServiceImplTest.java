@@ -9,26 +9,31 @@ import com.vadimaid.skb_registration.validator.CustomerValidator;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.times;
 
+@RunWith(MockitoJUnitRunner.class)
 public class CustomerServiceImplTest {
 
     @InjectMocks
     private CustomerServiceImpl customerService;
 
-    @MockBean
+    @Mock
     private CustomerRepository customerRepository;
-    @MockBean
+    @Mock
     private CustomerValidator customerValidator;
-    @MockBean
+    @Mock
     private CustomerMapper customerMapper;
-    @MockBean
+    @Mock
     private MessageSender messageSender;
 
     @AfterEach
@@ -46,15 +51,13 @@ public class CustomerServiceImplTest {
         customer.setFullname("Test Test");
 
         when(customerRepository.save(any(Customer.class))).thenReturn(customer);
+        when(customerRepository.findById(eq(1L))).thenReturn(Optional.of(customer));
 
         customerRepository.save(new Customer());
 
         Customer byId = customerService.findById(1L);
         Assert.assertEquals(customer.getLogin(), byId.getLogin());
-        customerRepository.delete(customer);
-
-        byId = customerService.findById(1L);
-        Assert.assertNull(byId);
+        verify(customerRepository, times(1)).findById(eq(1L));
     }
 
     @Test
@@ -65,16 +68,21 @@ public class CustomerServiceImplTest {
         customer.setPassword("test");
         customer.setEmail("test@gmail.com");
         customer.setFullname("Test Test");
-        when(customerRepository.save(any(Customer.class))).thenReturn(customer);
-
 
         CustomerDto dto = new CustomerDto();
         dto.setLogin("test");
         dto.setPassword("test");
         dto.setEmail("test@gmail.com");
         dto.setFullName("Test Test");
+
+        doNothing().when(customerValidator).validateCustomer(any(CustomerDto.class));
+        when(customerRepository.save(any(Customer.class))).thenReturn(customer);
+        when(customerMapper.mapDtoToEntity(eq(dto))).thenReturn(customer);
+        doNothing().when(messageSender).sendMessage(any(Customer.class));
+
+
         Customer createdCustomer = customerService.create(dto);
         verify(customerRepository, times(1)).save(eq(customer));
-        Assert.assertEquals(createdCustomer.getLogin(), customer.getLogin());
+        Assert.assertEquals(createdCustomer.getLogin(), dto.getLogin());
     }
 }
